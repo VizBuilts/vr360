@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VizBuilts 360</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="A lightweight viewing wrapper for YouTube 360 links with time, yaw, pitch, roll, and fov parameters." />
-  <link rel="icon" href="favicon.ico" sizes="any">
+  <title>VizBuilts 360 Mobile Test Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="VizBuilts 360 YouTube wrapper with mobile iframe permissions, touch-action fixes, and spherical view restoration." />
+  <link rel="icon" href="favicon.ico" sizes="any" />
 
   <style>
     :root {
       color-scheme: dark;
-      --bg: #0b0b0f;
+      --bg: #050509;
       --panel: rgba(18, 18, 24, 0.88);
       --panel-border: rgba(255, 255, 255, 0.14);
       --text: #f3f4f6;
@@ -19,39 +19,46 @@
       --danger: #ef4444;
     }
 
-    html, body {
+    html,
+    body {
       margin: 0;
       width: 100%;
       height: 100%;
+      min-height: 100%;
       background: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      overflow: auto;
+      overscroll-behavior: none;
+      touch-action: none;
+    }
+
+    body {
+      position: fixed;
+      inset: 0;
     }
 
     #app {
       position: fixed;
       inset: 0;
       background: #000;
+      touch-action: none;
     }
 
-    #player {
-      width: 100%;
-      height: 100%;
-    }
-
+    #player,
     #player iframe {
-      width: 100%;
-      height: 100%;
+      width: 100% !important;
+      height: 100% !important;
       border: 0;
+      display: block;
       pointer-events: auto;
+      touch-action: none;
     }
 
     .overlay {
       position: fixed;
-      left: 16px;
-      right: 16px;
-      bottom: 16px;
+      left: max(12px, env(safe-area-inset-left));
+      right: max(12px, env(safe-area-inset-right));
+      bottom: max(12px, env(safe-area-inset-bottom));
       z-index: 10;
       display: flex;
       gap: 10px;
@@ -72,8 +79,8 @@
     }
 
     .status {
-      min-width: 260px;
-      max-width: min(680px, calc(100vw - 32px));
+      min-width: 240px;
+      max-width: min(720px, calc(100vw - 24px));
     }
 
     .status-title {
@@ -83,7 +90,7 @@
     }
 
     .status-main {
-      font-size: 14px;
+      font-size: 13px;
       line-height: 1.35;
       word-break: break-word;
     }
@@ -96,7 +103,8 @@
       justify-content: flex-end;
     }
 
-    button, a.button {
+    button,
+    a.button {
       appearance: none;
       border: 0;
       border-radius: 10px;
@@ -111,9 +119,11 @@
       align-items: center;
       justify-content: center;
       min-height: 38px;
+      touch-action: manipulation;
     }
 
-    button.secondary, a.button.secondary {
+    button.secondary,
+    a.button.secondary {
       background: rgba(255, 255, 255, 0.14);
     }
 
@@ -123,12 +133,13 @@
 
     #help {
       position: fixed;
-      inset: 16px;
+      inset: 12px;
       z-index: 20;
       display: none;
       align-items: center;
       justify-content: center;
       background: rgba(0, 0, 0, 0.66);
+      touch-action: manipulation;
     }
 
     #help.open {
@@ -136,14 +147,15 @@
     }
 
     .help-card {
-      width: min(760px, calc(100vw - 32px));
-      max-height: calc(100vh - 32px);
+      width: min(760px, calc(100vw - 24px));
+      max-height: calc(100vh - 24px);
       overflow: auto;
       background: #15151d;
       border: 1px solid var(--panel-border);
       border-radius: 18px;
       padding: 18px;
       box-shadow: 0 24px 90px rgba(0, 0, 0, 0.55);
+      touch-action: pan-y;
     }
 
     .help-card h1 {
@@ -158,16 +170,17 @@
       word-break: break-all;
     }
 
-    .help-card p, .help-card li {
+    .help-card p,
+    .help-card li {
       color: #d4d4d8;
       line-height: 1.45;
     }
 
     .top-error {
       position: fixed;
-      top: 16px;
-      left: 16px;
-      right: 16px;
+      top: max(12px, env(safe-area-inset-top));
+      left: max(12px, env(safe-area-inset-left));
+      right: max(12px, env(safe-area-inset-right));
       z-index: 30;
       background: rgba(127, 29, 29, 0.94);
       color: #fff;
@@ -180,6 +193,14 @@
 
     .top-error.visible {
       display: block;
+    }
+
+    #restoreUiBtn {
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right));
+      bottom: max(12px, env(safe-area-inset-bottom));
+      z-index: 15;
+      background: rgba(255, 255, 255, 0.14);
     }
 
     @media (max-width: 720px) {
@@ -213,12 +234,13 @@
 
   <div class="overlay" aria-label="Viewer controls">
     <div class="panel status">
-      <div class="status-title">YouTube 360 Wrapper</div>
+      <div class="status-title">VizBuilts 360 Mobile Test</div>
       <div id="statusText" class="status-main">Loading…</div>
     </div>
 
     <div class="panel controls">
       <button id="reapplyBtn" type="button" class="secondary" title="Reapply yaw, pitch, roll, and FOV from the URL">Reapply View</button>
+      <button id="permissionBtn" type="button" class="secondary" title="Request motion permissions where supported">Enable Motion</button>
       <button id="hideBtn" type="button" class="secondary" title="Hide the bottom controls">Hide UI</button>
       <button id="helpBtn" type="button" title="Show help">Help</button>
     </div>
@@ -226,28 +248,12 @@
 
   <div id="help" aria-modal="true" role="dialog">
     <div class="help-card">
-      <h1>YouTube 360 View Wrapper</h1>
-      <p>
-        This page is meant to be hosted on GitHub Pages and opened by QR codes generated by your separate editor.
-        It reads URL parameters, loads the YouTube video, seeks to the time, and applies spherical orientation.
-      </p>
-
-      <p><strong>Supported URL format:</strong></p>
-      <p>
-        <code>viewer.html?video=VIDEO_ID&t=18&yaw=90&pitch=-7&roll=0&fov=80</code>
-      </p>
-
-      <p><strong>Also accepted:</strong></p>
-      <ul>
-        <li><code>v=VIDEO_ID</code> instead of <code>video=VIDEO_ID</code></li>
-        <li><code>time=18</code> instead of <code>t=18</code></li>
-        <li>Full YouTube URL passed as <code>url=https://youtu.be/VIDEO_ID?t=18s</code></li>
-      </ul>
-
-      <p>
-        YouTube reliably supports time seeking through the player API. Spherical view restoration depends on the video being a valid 360 video and the browser/player honoring <code>setSphericalProperties()</code>.
-      </p>
-
+      <h1>VizBuilts 360 Mobile Test Viewer</h1>
+      <p>This viewer is meant to test whether YouTube's embedded 360 player will honor mobile touch/gyro interaction inside a wrapper page.</p>
+      <p><strong>Example URL:</strong></p>
+      <p><code>?video=zxZBpxrye3o&amp;t=2.7&amp;yaw=176&amp;pitch=0&amp;roll=0&amp;fov=80</code></p>
+      <p>This version adds iframe permissions for <code>accelerometer</code>, <code>gyroscope</code>, <code>fullscreen</code>, <code>autoplay</code>, <code>encrypted-media</code>, and <code>picture-in-picture</code>.</p>
+      <p>If mobile still shows flat/equirectangular video, that likely means YouTube is not enabling its mobile embedded 360 renderer for this browser/session.</p>
       <div class="controls">
         <button id="closeHelpBtn" type="button">Close</button>
       </div>
@@ -266,6 +272,7 @@
       statusText: document.getElementById("statusText"),
       errorBox: document.getElementById("errorBox"),
       reapplyBtn: document.getElementById("reapplyBtn"),
+      permissionBtn: document.getElementById("permissionBtn"),
       hideBtn: document.getElementById("hideBtn"),
       helpBtn: document.getElementById("helpBtn"),
       help: document.getElementById("help"),
@@ -312,33 +319,29 @@
     }
 
     function onPlayerReady() {
+      enhanceYouTubeIframePermissions();
+
       updateStatus("Player ready. Seeking and applying view…");
       player.seekTo(desired.time, true);
 
-      // Apply several times because YouTube often needs a moment after seek/load
-      // before it accepts spherical orientation.
       applyDesiredViewRepeatedly();
 
-      try {
-        player.playVideo();
-      } catch (err) {
-        // Autoplay may be blocked. The user can press play.
-      }
-
-      // Additional delayed pass: this helps when the player starts as a flat
-      // equirectangular frame before YouTube finishes initializing 360/WebGL mode.
       setTimeout(() => {
-        try {
-          player.playVideo();
-          applyDesiredViewRepeatedly();
-        } catch (err) {
-          console.warn("Delayed spherical apply failed:", err);
-        }
-      }, 1500);
+        enhanceYouTubeIframePermissions();
+        applyDesiredViewRepeatedly();
+        tryPlay();
+      }, 750);
+
+      setTimeout(() => {
+        enhanceYouTubeIframePermissions();
+        applyDesiredViewRepeatedly();
+      }, 1800);
+
+      tryPlay();
     }
 
     function onPlayerStateChange() {
-      // Reapply once after playback begins or buffers.
+      enhanceYouTubeIframePermissions();
       applyDesiredViewRepeatedly();
     }
 
@@ -346,15 +349,62 @@
       showError("YouTube player error: " + event.data);
     }
 
+    function enhanceYouTubeIframePermissions() {
+      const iframe = document.querySelector("#player iframe");
+      if (!iframe) return;
+
+      iframe.setAttribute(
+        "allow",
+        "accelerometer; gyroscope; autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
+      );
+      iframe.setAttribute("allowfullscreen", "true");
+      iframe.setAttribute("webkitallowfullscreen", "true");
+      iframe.setAttribute("mozallowfullscreen", "true");
+      iframe.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
+
+      iframe.style.width = "100%";
+      iframe.style.height = "100%";
+      iframe.style.border = "0";
+      iframe.style.pointerEvents = "auto";
+      iframe.style.touchAction = "none";
+    }
+
+    async function requestMotionPermissions() {
+      try {
+        let granted = false;
+
+        if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+          const result = await DeviceMotionEvent.requestPermission();
+          granted = result === "granted";
+        }
+
+        if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+          const result = await DeviceOrientationEvent.requestPermission();
+          granted = granted || result === "granted";
+        }
+
+        enhanceYouTubeIframePermissions();
+        applyDesiredViewRepeatedly();
+
+        updateStatus(granted ? "Motion permission requested/granted. Reapplying view…" : "Motion permission request completed. Reapplying view…");
+      } catch (err) {
+        showError("Motion permission request failed: " + err.message);
+      }
+    }
+
+    function tryPlay() {
+      try {
+        player.playVideo();
+      } catch (err) {
+        // Mobile browsers may require a user gesture. User can press YouTube play.
+      }
+    }
+
     function readViewerParams() {
       const params = new URLSearchParams(location.search);
 
-      let videoId =
-        params.get("video") ||
-        params.get("v") ||
-        params.get("id");
-
-      let sourceUrl = params.get("url");
+      let videoId = params.get("video") || params.get("v") || params.get("id");
+      const sourceUrl = params.get("url");
 
       if (sourceUrl && !videoId) {
         const parsed = parseYouTubeUrl(sourceUrl);
@@ -366,15 +416,15 @@
       }
 
       if (!videoId) {
-        throw new Error("No video ID found. Use ?video=VIDEO_ID&t=18&yaw=90&pitch=-7&roll=0&fov=80");
+        videoId = "zxZBpxrye3o";
       }
 
-      const time = parseTimeToSeconds(params.get("t") || params.get("time") || "0");
+      const time = parseTimeToSeconds(params.get("t") || params.get("time") || "2.7");
 
       return {
         videoId,
         time,
-        yaw: readNumber(params, "yaw", 0),
+        yaw: readNumber(params, "yaw", 176),
         pitch: readNumber(params, "pitch", 0),
         roll: readNumber(params, "roll", 0),
         fov: readNumber(params, "fov", 80)
@@ -411,14 +461,12 @@
     function readNumber(params, key, fallback) {
       const raw = params.get(key);
       if (raw === null || raw === "") return fallback;
-
       const value = Number(raw);
       return Number.isFinite(value) ? value : fallback;
     }
 
     function parseTimeToSeconds(raw) {
       if (!raw) return 0;
-
       const t = String(raw).trim();
 
       if (/^-?\d+(\.\d+)?$/.test(t)) {
@@ -447,11 +495,11 @@
         tries += 1;
         applyDesiredView();
 
-        if (tries >= 8) {
+        if (tries >= 10) {
           clearInterval(applyTimer);
           applyTimer = null;
         }
-      }, 350);
+      }, 300);
     }
 
     function applyDesiredView() {
@@ -487,7 +535,12 @@
       els.errorBox.classList.add("visible");
     }
 
-    els.reapplyBtn.addEventListener("click", applyDesiredViewRepeatedly);
+    els.reapplyBtn.addEventListener("click", () => {
+      enhanceYouTubeIframePermissions();
+      applyDesiredViewRepeatedly();
+    });
+
+    els.permissionBtn.addEventListener("click", requestMotionPermissions);
 
     els.hideBtn.addEventListener("click", () => {
       const overlay = document.querySelector(".overlay");
@@ -501,11 +554,6 @@
         restore.type = "button";
         restore.textContent = "Show UI";
         restore.title = "Show the wrapper controls";
-        restore.style.position = "fixed";
-        restore.style.right = "16px";
-        restore.style.bottom = "16px";
-        restore.style.zIndex = "15";
-        restore.style.background = "rgba(255,255,255,0.14)";
         restore.addEventListener("click", () => {
           uiHidden = false;
           overlay.style.display = "flex";
