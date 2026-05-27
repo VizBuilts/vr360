@@ -33,7 +33,7 @@
     }
 
     body {
-      position: fixed;
+      overflow: hidden;
       inset: 0;
     }
 
@@ -41,7 +41,9 @@
       position: fixed;
       inset: 0;
       background: #000;
-      touch-action: none;
+      touch-action: auto;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
     #player,
@@ -50,8 +52,8 @@
       height: 100% !important;
       border: 0;
       display: block;
-      pointer-events: auto;
-      touch-action: none;
+      touch-action: auto !important;
+      pointer-events: auto !important;
     }
 
     .overlay {
