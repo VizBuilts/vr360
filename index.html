@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VizBuilts 360 Mobile Test Viewer</title>
+  <title>VizBuilts 360 Sensor-Control Test Viewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="description" content="VizBuilts 360 YouTube wrapper with mobile iframe permissions, touch-action fixes, and spherical view restoration." />
   <link rel="icon" href="favicon.ico" sizes="any" />
@@ -220,27 +220,10 @@
       }
     }
 
-    /* Desktop: preserve YouTube drag controls */
-    @media (hover: hover) and (pointer: fine) {
-      html,
-      body,
-      #app,
-      #player,
-      #player iframe {
-        touch-action: none;
-      }
-    }
-
-    /* Mobile/touch: let YouTube/mobile browser handle touch */
-    @media (hover: none), (pointer: coarse) {
-      html,
-      body,
-      #app,
-      #player,
-      #player iframe {
-        touch-action: manipulation;
-      }
-    }
+    /*
+      Do not force touch-action on the YouTube iframe.
+      YouTube's own 360 interaction layer needs native pointer/touch handling.
+    */
   </style>
 </head>
 
@@ -253,7 +236,7 @@
 
   <div class="overlay" aria-label="Viewer controls">
     <div class="panel status">
-      <div class="status-title">VizBuilts 360 Mobile Test</div>
+      <div class="status-title">VizBuilts 360 Sensor-Control Test</div>
       <div id="statusText" class="status-main">Loading…</div>
     </div>
 
@@ -267,12 +250,13 @@
 
   <div id="help" aria-modal="true" role="dialog">
     <div class="help-card">
-      <h1>VizBuilts 360 Mobile Test Viewer</h1>
+      <h1>VizBuilts 360 Sensor-Control Test Viewer</h1>
       <p>This viewer is meant to test whether YouTube's embedded 360 player will honor mobile touch/gyro interaction inside a wrapper page.</p>
       <p><strong>Example URL:</strong></p>
       <p><code>?video=zxZBpxrye3o&amp;t=2.7&amp;yaw=176&amp;pitch=0&amp;roll=0&amp;fov=80</code></p>
       <p>This version adds iframe permissions for <code>accelerometer</code>, <code>gyroscope</code>, <code>fullscreen</code>, <code>autoplay</code>, <code>encrypted-media</code>, and <code>picture-in-picture</code>.</p>
-      <p>If mobile still shows flat/equirectangular video, that likely means YouTube is not enabling its mobile embedded 360 renderer for this browser/session.</p>
+      <p>It also tests <code>enableOrientationSensor:false</code> on mobile-like devices when calling <code>setSphericalProperties()</code>. This asks YouTube to honor URL/API yaw, pitch, roll, and FOV instead of letting phone gyro orientation override those values.</p>
+      <p>If mobile still shows flat/equirectangular video or does not allow touch look-around, that likely means YouTube is not enabling its mobile embedded 360 renderer for this browser/session.</p>
       <div class="controls">
         <button id="closeHelpBtn" type="button">Close</button>
       </div>
@@ -286,6 +270,11 @@
     let desired = null;
     let uiHidden = false;
     let applyTimer = null;
+
+    const isMobileLike =
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "") ||
+      (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
+      (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
 
     const els = {
       statusText: document.getElementById("statusText"),
@@ -340,7 +329,11 @@
     function onPlayerReady() {
       enhanceYouTubeIframePermissions();
 
-      updateStatus("Player ready. Seeking and applying view…");
+      updateStatus(
+        isMobileLike
+          ? "Mobile-like device detected. Seeking, applying saved view, and disabling YouTube orientation sensor for API yaw/pitch/roll test…"
+          : "Desktop-like device detected. Seeking and applying saved view…"
+      );
       player.seekTo(desired.time, true);
 
       applyDesiredViewRepeatedly();
@@ -385,7 +378,8 @@
       iframe.style.height = "100%";
       iframe.style.border = "0";
       iframe.style.pointerEvents = "auto";
-      iframe.style.touchAction = "none";
+      // Do not set iframe.style.touchAction here.
+      // Forcing touch-action can break YouTube's own 360 interaction layer.
     }
 
     async function requestMotionPermissions() {
@@ -525,14 +519,27 @@
       if (!player || !desired || typeof player.setSphericalProperties !== "function") return;
 
       try {
-        player.setSphericalProperties({
+        const sphericalProps = {
           yaw: desired.yaw,
           pitch: desired.pitch,
           roll: desired.roll,
           fov: desired.fov
-        });
+        };
+
+        /*
+          Important mobile test:
+          On mobile, YouTube may let the device orientation sensor override
+          yaw/pitch/roll. Setting enableOrientationSensor:false asks the
+          player to honor API-provided yaw/pitch/roll instead.
+        */
+        if (isMobileLike) {
+          sphericalProps.enableOrientationSensor = false;
+        }
+
+        player.setSphericalProperties(sphericalProps);
 
         updateStatus(
+          (isMobileLike ? "Mobile API-control test | " : "Desktop mode | ") +
           "Video: " + desired.videoId +
           " | t=" + desired.time +
           "s | yaw=" + desired.yaw +
