@@ -1,0 +1,8 @@
+{
+  "hints": {
+    "compat-api/html": "off",
+    "html-checker": "off",
+    "no-autoplay-audio": "off",
+    "meta-viewport": "off"
+  }
+}
