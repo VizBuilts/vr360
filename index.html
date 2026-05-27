@@ -51,6 +51,14 @@
       pointer-events: auto !important;
     }
 
+    /*
+      Keep YouTube's iframe interaction native.
+      Forcing touch-action here caused drag-to-look to degrade into play/pause toggling.
+    */
+    #player iframe {
+      touch-action: auto !important;
+    }
+
     .overlay {
       position: fixed;
       left: max(12px, env(safe-area-inset-left));
@@ -221,10 +229,14 @@
     }
 
     /*
-      Do not set touch-action on the YouTube iframe.
-      YouTube's embedded 360 renderer needs to own pointer/touch handling.
-      Wrapper buttons can use touch-action: manipulation, but the iframe should be left alone.
+      Important:
+      Do not force touch-action on the YouTube iframe.
+      YouTube's own 360 interaction layer needs to receive normal pointer/mouse/touch events.
     */
+
+    .overlay.interaction-hidden {
+      display: none;
+    }
   </style>
 </head>
 
@@ -244,6 +256,7 @@
     <div class="panel controls">
       <button id="reapplyBtn" type="button" class="secondary" title="Reapply yaw, pitch, roll, and FOV from the URL">Reapply View</button>
       <button id="permissionBtn" type="button" class="secondary" title="Request motion permissions where supported">Enable Motion</button>
+      <button id="interactBtn" type="button" class="secondary" title="Hide all wrapper UI so YouTube receives drag input directly">Interact</button>
       <button id="hideBtn" type="button" class="secondary" title="Hide the bottom controls">Hide UI</button>
       <button id="helpBtn" type="button" title="Show help">Help</button>
     </div>
@@ -276,6 +289,7 @@
       errorBox: document.getElementById("errorBox"),
       reapplyBtn: document.getElementById("reapplyBtn"),
       permissionBtn: document.getElementById("permissionBtn"),
+      interactBtn: document.getElementById("interactBtn"),
       hideBtn: document.getElementById("hideBtn"),
       helpBtn: document.getElementById("helpBtn"),
       help: document.getElementById("help"),
@@ -369,7 +383,7 @@
       iframe.style.height = "100%";
       iframe.style.border = "0";
       iframe.style.pointerEvents = "auto";
-      iframe.style.removeProperty("touch-action");
+      iframe.style.touchAction = "auto";
     }
 
     async function requestMotionPermissions() {
@@ -545,6 +559,26 @@
 
     els.permissionBtn.addEventListener("click", requestMotionPermissions);
 
+
+    els.interactBtn.addEventListener("click", () => {
+      const overlay = document.querySelector(".overlay");
+      overlay.classList.add("interaction-hidden");
+
+      updateStatus("Interaction mode enabled. Drag directly on the video. Press Esc to show UI again.");
+
+      const restore = document.createElement("button");
+      restore.id = "restoreUiBtn";
+      restore.type = "button";
+      restore.textContent = "Show UI";
+      restore.title = "Show the wrapper controls";
+      restore.addEventListener("click", () => {
+        overlay.classList.remove("interaction-hidden");
+        restore.remove();
+      });
+
+      document.body.appendChild(restore);
+    });
+
     els.hideBtn.addEventListener("click", () => {
       const overlay = document.querySelector(".overlay");
       uiHidden = !uiHidden;
@@ -574,7 +608,13 @@
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") els.help.classList.remove("open");
+      if (event.key === "Escape") {
+        els.help.classList.remove("open");
+        const overlay = document.querySelector(".overlay");
+        overlay.classList.remove("interaction-hidden");
+        const restore = document.getElementById("restoreUiBtn");
+        if (restore) restore.remove();
+      }
       if (event.key.toLowerCase() === "r") applyDesiredViewRepeatedly();
       if (event.key.toLowerCase() === "h") els.help.classList.toggle("open");
     });
