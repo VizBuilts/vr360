@@ -220,27 +220,11 @@
       }
     }
 
-    /* Desktop: preserve YouTube drag controls */
-    @media (hover: hover) and (pointer: fine) {
-      html,
-      body,
-      #app,
-      #player,
-      #player iframe {
-        touch-action: none;
-      }
-    }
-
-    /* Mobile/touch: let YouTube/mobile browser handle touch */
-    @media (hover: none), (pointer: coarse) {
-      html,
-      body,
-      #app,
-      #player,
-      #player iframe {
-        touch-action: manipulation;
-      }
-    }
+    /*
+      Do not set touch-action on the YouTube iframe.
+      YouTube's embedded 360 renderer needs to own pointer/touch handling.
+      Wrapper buttons can use touch-action: manipulation, but the iframe should be left alone.
+    */
   </style>
 </head>
 
@@ -385,7 +369,7 @@
       iframe.style.height = "100%";
       iframe.style.border = "0";
       iframe.style.pointerEvents = "auto";
-      iframe.style.touchAction = "none";
+      iframe.style.removeProperty("touch-action");
     }
 
     async function requestMotionPermissions() {
