@@ -2,38 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VizBuilts 360 Mobile Test Viewer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="VizBuilts 360 YouTube wrapper with mobile iframe permissions, touch-action fixes, and spherical view restoration." />
-  <link rel="icon" href="favicon.ico" sizes="any" />
+  <title>VizBuilts 360</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="A lightweight viewing wrapper for YouTube 360 links with time, yaw, pitch, roll, and fov parameters." />
+  <link rel="icon" href="favicon.ico" sizes="any">
 
   <style>
     :root {
       color-scheme: dark;
-      --bg: #050509;
+      --bg: #0b0b0f;
       --panel: rgba(18, 18, 24, 0.88);
       --panel-border: rgba(255, 255, 255, 0.14);
       --text: #f3f4f6;
       --muted: #a1a1aa;
       --accent: #3b82f6;
       --danger: #ef4444;
+      --ok: #22c55e;
+      --warn: #f59e0b;
     }
 
-    html,
-    body {
+    html, body {
       margin: 0;
       width: 100%;
       height: 100%;
-      min-height: 100%;
       background: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      overscroll-behavior: none;
-    }
-
-    body {
-      overflow: hidden;
-      inset: 0;
+      overflow: auto;
     }
 
     #app {
@@ -42,28 +37,29 @@
       background: #000;
     }
 
-    #player,
-    #player iframe {
-      width: 100% !important;
-      height: 100% !important;
-      border: 0;
-      display: block;
-      pointer-events: auto !important;
+    #player {
+      width: 100%;
+      height: 100%;
     }
 
     /*
-      Keep YouTube's iframe interaction native.
-      Forcing touch-action here caused drag-to-look to degrade into play/pause toggling.
+      IMPORTANT:
+      This is the stable V2 desktop behavior.
+      Do not globally force touch-action here.
+      YouTube's iframe needs native pointer handling for desktop drag-to-look.
     */
     #player iframe {
-      touch-action: auto !important;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      pointer-events: auto;
     }
 
     .overlay {
       position: fixed;
-      left: max(12px, env(safe-area-inset-left));
-      right: max(12px, env(safe-area-inset-right));
-      bottom: max(12px, env(safe-area-inset-bottom));
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
       z-index: 10;
       display: flex;
       gap: 10px;
@@ -84,18 +80,41 @@
     }
 
     .status {
-      min-width: 240px;
-      max-width: min(720px, calc(100vw - 24px));
+      min-width: 280px;
+      max-width: min(760px, calc(100vw - 32px));
     }
 
     .status-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-size: 13px;
       color: var(--muted);
       margin-bottom: 4px;
     }
 
+    .mode-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .mode-pill.desktop {
+      background: rgba(34, 197, 94, 0.72);
+    }
+
+    .mode-pill.mobile {
+      background: rgba(245, 158, 11, 0.78);
+    }
+
     .status-main {
-      font-size: 13px;
+      font-size: 14px;
       line-height: 1.35;
       word-break: break-word;
     }
@@ -108,8 +127,7 @@
       justify-content: flex-end;
     }
 
-    button,
-    a.button {
+    button, a.button {
       appearance: none;
       border: 0;
       border-radius: 10px;
@@ -124,11 +142,9 @@
       align-items: center;
       justify-content: center;
       min-height: 38px;
-      touch-action: manipulation;
     }
 
-    button.secondary,
-    a.button.secondary {
+    button.secondary, a.button.secondary {
       background: rgba(255, 255, 255, 0.14);
     }
 
@@ -138,13 +154,12 @@
 
     #help {
       position: fixed;
-      inset: 12px;
+      inset: 16px;
       z-index: 20;
       display: none;
       align-items: center;
       justify-content: center;
       background: rgba(0, 0, 0, 0.66);
-      touch-action: manipulation;
     }
 
     #help.open {
@@ -152,15 +167,14 @@
     }
 
     .help-card {
-      width: min(760px, calc(100vw - 24px));
-      max-height: calc(100vh - 24px);
+      width: min(820px, calc(100vw - 32px));
+      max-height: calc(100vh - 32px);
       overflow: auto;
       background: #15151d;
       border: 1px solid var(--panel-border);
       border-radius: 18px;
       padding: 18px;
       box-shadow: 0 24px 90px rgba(0, 0, 0, 0.55);
-      touch-action: pan-y;
     }
 
     .help-card h1 {
@@ -175,17 +189,16 @@
       word-break: break-all;
     }
 
-    .help-card p,
-    .help-card li {
+    .help-card p, .help-card li {
       color: #d4d4d8;
       line-height: 1.45;
     }
 
     .top-error {
       position: fixed;
-      top: max(12px, env(safe-area-inset-top));
-      left: max(12px, env(safe-area-inset-left));
-      right: max(12px, env(safe-area-inset-right));
+      top: 16px;
+      left: 16px;
+      right: 16px;
       z-index: 30;
       background: rgba(127, 29, 29, 0.94);
       color: #fff;
@@ -202,10 +215,10 @@
 
     #restoreUiBtn {
       position: fixed;
-      right: max(12px, env(safe-area-inset-right));
-      bottom: max(12px, env(safe-area-inset-bottom));
+      right: 16px;
+      bottom: 16px;
       z-index: 15;
-      background: rgba(255, 255, 255, 0.14);
+      background: rgba(255,255,255,0.14);
     }
 
     @media (max-width: 720px) {
@@ -227,16 +240,6 @@
         flex: 1 1 auto;
       }
     }
-
-    /*
-      Important:
-      Do not force touch-action on the YouTube iframe.
-      YouTube's own 360 interaction layer needs to receive normal pointer/mouse/touch events.
-    */
-
-    .overlay.interaction-hidden {
-      display: none;
-    }
   </style>
 </head>
 
@@ -249,14 +252,17 @@
 
   <div class="overlay" aria-label="Viewer controls">
     <div class="panel status">
-      <div class="status-title">VizBuilts 360 Mobile Test</div>
+      <div class="status-title">
+        <span>YouTube 360 Wrapper</span>
+        <span id="modePill" class="mode-pill">MODE</span>
+      </div>
       <div id="statusText" class="status-main">Loading…</div>
     </div>
 
     <div class="panel controls">
       <button id="reapplyBtn" type="button" class="secondary" title="Reapply yaw, pitch, roll, and FOV from the URL">Reapply View</button>
-      <button id="permissionBtn" type="button" class="secondary" title="Request motion permissions where supported">Enable Motion</button>
-      <button id="interactBtn" type="button" class="secondary" title="Hide all wrapper UI so YouTube receives drag input directly">Interact</button>
+      <button id="motionBtn" type="button" class="secondary" title="Request iOS motion/orientation permission where supported">Enable Motion</button>
+      <button id="youtubeBtn" type="button" class="secondary" title="Open the same video in YouTube">Open YouTube</button>
       <button id="hideBtn" type="button" class="secondary" title="Hide the bottom controls">Hide UI</button>
       <button id="helpBtn" type="button" title="Show help">Help</button>
     </div>
@@ -264,12 +270,36 @@
 
   <div id="help" aria-modal="true" role="dialog">
     <div class="help-card">
-      <h1>VizBuilts 360 Mobile Test Viewer</h1>
-      <p>This viewer is meant to test whether YouTube's embedded 360 player will honor mobile touch/gyro interaction inside a wrapper page.</p>
-      <p><strong>Example URL:</strong></p>
-      <p><code>?video=zxZBpxrye3o&amp;t=2.7&amp;yaw=176&amp;pitch=0&amp;roll=0&amp;fov=80</code></p>
-      <p>This version adds iframe permissions for <code>accelerometer</code>, <code>gyroscope</code>, <code>fullscreen</code>, <code>autoplay</code>, <code>encrypted-media</code>, and <code>picture-in-picture</code>.</p>
-      <p>If mobile still shows flat/equirectangular video, that likely means YouTube is not enabling its mobile embedded 360 renderer for this browser/session.</p>
+      <h1>VizBuilts 360 Wrapper</h1>
+      <p>
+        This single file has two branches:
+      </p>
+
+      <ul>
+        <li><strong>Desktop Mode:</strong> preserves the stable V2 YouTube iframe behavior for drag-to-look.</li>
+        <li><strong>Mobile Mode:</strong> adds iframe permissions and an optional motion-permission button without changing desktop handling.</li>
+      </ul>
+
+      <p><strong>Supported URL format:</strong></p>
+      <p>
+        <code>https://vizbuilts.github.io/vr360/?video=VIDEO_ID&amp;t=18&amp;yaw=90&amp;pitch=-7&amp;roll=0&amp;fov=80</code>
+      </p>
+
+      <p><strong>Also accepted:</strong></p>
+      <ul>
+        <li><code>v=VIDEO_ID</code> instead of <code>video=VIDEO_ID</code></li>
+        <li><code>time=18</code> instead of <code>t=18</code></li>
+        <li>Full YouTube URL passed as <code>url=https://youtu.be/VIDEO_ID?t=18s</code></li>
+      </ul>
+
+      <p>
+        YouTube reliably supports time seeking through the player API. Spherical view restoration depends on the video being a valid 360 video and the browser/player honoring <code>setSphericalProperties()</code>.
+      </p>
+
+      <p>
+        Mobile YouTube iframe 360 interaction can still be inconsistent. If mobile does not allow drag/gyro interaction, use the <strong>Open YouTube</strong> button or move to a Three.js self-hosted 360 video viewer for reliable field/mobile use.
+      </p>
+
       <div class="controls">
         <button id="closeHelpBtn" type="button">Close</button>
       </div>
@@ -283,18 +313,41 @@
     let desired = null;
     let uiHidden = false;
     let applyTimer = null;
+    let mode = "desktop";
 
     const els = {
       statusText: document.getElementById("statusText"),
+      modePill: document.getElementById("modePill"),
       errorBox: document.getElementById("errorBox"),
       reapplyBtn: document.getElementById("reapplyBtn"),
-      permissionBtn: document.getElementById("permissionBtn"),
-      interactBtn: document.getElementById("interactBtn"),
+      motionBtn: document.getElementById("motionBtn"),
+      youtubeBtn: document.getElementById("youtubeBtn"),
       hideBtn: document.getElementById("hideBtn"),
       helpBtn: document.getElementById("helpBtn"),
       help: document.getElementById("help"),
       closeHelpBtn: document.getElementById("closeHelpBtn")
     };
+
+    function detectMode() {
+      const ua = navigator.userAgent || "";
+      const byUA = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+      const byPointer = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+      const byTouch = navigator.maxTouchPoints && navigator.maxTouchPoints > 1;
+
+      return (byUA || byPointer || byTouch) ? "mobile" : "desktop";
+    }
+
+    function setModeUI() {
+      els.modePill.textContent = mode === "mobile" ? "MOBILE" : "DESKTOP";
+      els.modePill.classList.remove("mobile", "desktop");
+      els.modePill.classList.add(mode);
+
+      if (mode === "desktop") {
+        els.motionBtn.style.display = "none";
+      } else {
+        els.motionBtn.style.display = "inline-flex";
+      }
+    }
 
     function onYouTubeIframeAPIReady() {
       boot();
@@ -302,6 +355,9 @@
 
     function boot() {
       try {
+        mode = detectMode();
+        setModeUI();
+
         desired = readViewerParams();
 
         player = new YT.Player("player", {
@@ -336,29 +392,74 @@
     }
 
     function onPlayerReady() {
-      enhanceYouTubeIframePermissions();
+      if (mode === "mobile") {
+        bootMobileMode();
+      } else {
+        bootDesktopMode();
+      }
+    }
 
-      updateStatus("Player ready. Seeking and applying view…");
-      player.seekTo(desired.time, true);
+    function bootDesktopMode() {
+      /*
+        Desktop branch intentionally preserves V2 behavior.
+        Do not force touch-action or inject mobile iframe gesture overrides here.
+      */
+      updateStatus("Desktop mode. Seeking and applying view. Drag inside video to look around.");
+      seekAndApply();
 
-      applyDesiredViewRepeatedly();
+      try {
+        player.playVideo();
+      } catch (err) {
+        // Autoplay may be blocked. The user can press play.
+      }
 
       setTimeout(() => {
-        enhanceYouTubeIframePermissions();
+        try {
+          player.playVideo();
+          applyDesiredViewRepeatedly();
+        } catch (err) {
+          console.warn("Delayed desktop spherical apply failed:", err);
+        }
+      }, 1500);
+    }
+
+    function bootMobileMode() {
+      /*
+        Mobile branch is additive only.
+        It requests iframe permissions but does not alter the desktop branch.
+      */
+      enhanceMobileIframePermissions();
+      updateStatus("Mobile mode. YouTube iframe 360 may require fullscreen, motion permission, or opening in the YouTube app.");
+
+      seekAndApply();
+
+      try {
+        player.playVideo();
+      } catch (err) {
+        // Mobile browsers may require a user gesture.
+      }
+
+      setTimeout(() => {
+        enhanceMobileIframePermissions();
         applyDesiredViewRepeatedly();
-        tryPlay();
       }, 750);
 
       setTimeout(() => {
-        enhanceYouTubeIframePermissions();
+        enhanceMobileIframePermissions();
         applyDesiredViewRepeatedly();
       }, 1800);
+    }
 
-      tryPlay();
+    function seekAndApply() {
+      player.seekTo(desired.time, true);
+      applyDesiredViewRepeatedly();
     }
 
     function onPlayerStateChange() {
-      enhanceYouTubeIframePermissions();
+      if (mode === "mobile") {
+        enhanceMobileIframePermissions();
+      }
+
       applyDesiredViewRepeatedly();
     }
 
@@ -366,7 +467,7 @@
       showError("YouTube player error: " + event.data);
     }
 
-    function enhanceYouTubeIframePermissions() {
+    function enhanceMobileIframePermissions() {
       const iframe = document.querySelector("#player iframe");
       if (!iframe) return;
 
@@ -374,6 +475,7 @@
         "allow",
         "accelerometer; gyroscope; autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
       );
+
       iframe.setAttribute("allowfullscreen", "true");
       iframe.setAttribute("webkitallowfullscreen", "true");
       iframe.setAttribute("mozallowfullscreen", "true");
@@ -383,44 +485,54 @@
       iframe.style.height = "100%";
       iframe.style.border = "0";
       iframe.style.pointerEvents = "auto";
-      iframe.style.touchAction = "auto";
+
+      /*
+        Intentionally do NOT set iframe.style.touchAction.
+        That was the change that broke desktop drag behavior and may also
+        interfere with YouTube's own gesture layer.
+      */
     }
 
     async function requestMotionPermissions() {
+      if (mode !== "mobile") return;
+
       try {
+        let requested = false;
         let granted = false;
 
         if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+          requested = true;
           const result = await DeviceMotionEvent.requestPermission();
           granted = result === "granted";
         }
 
         if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+          requested = true;
           const result = await DeviceOrientationEvent.requestPermission();
           granted = granted || result === "granted";
         }
 
-        enhanceYouTubeIframePermissions();
+        enhanceMobileIframePermissions();
         applyDesiredViewRepeatedly();
 
-        updateStatus(granted ? "Motion permission requested/granted. Reapplying view…" : "Motion permission request completed. Reapplying view…");
+        if (!requested) {
+          updateStatus("Mobile mode. This browser did not expose a motion permission prompt. Reapplying view…");
+        } else {
+          updateStatus(granted ? "Motion permission granted. Reapplying view…" : "Motion permission was not granted. Reapplying view…");
+        }
       } catch (err) {
         showError("Motion permission request failed: " + err.message);
-      }
-    }
-
-    function tryPlay() {
-      try {
-        player.playVideo();
-      } catch (err) {
-        // Mobile browsers may require a user gesture. User can press YouTube play.
       }
     }
 
     function readViewerParams() {
       const params = new URLSearchParams(location.search);
 
-      let videoId = params.get("video") || params.get("v") || params.get("id");
+      let videoId =
+        params.get("video") ||
+        params.get("v") ||
+        params.get("id");
+
       const sourceUrl = params.get("url");
 
       if (sourceUrl && !videoId) {
@@ -433,15 +545,15 @@
       }
 
       if (!videoId) {
-        videoId = "zxZBpxrye3o";
+        throw new Error("No video ID found. Use ?video=VIDEO_ID&t=18&yaw=90&pitch=-7&roll=0&fov=80");
       }
 
-      const time = parseTimeToSeconds(params.get("t") || params.get("time") || "2.7");
+      const time = parseTimeToSeconds(params.get("t") || params.get("time") || "0");
 
       return {
         videoId,
         time,
-        yaw: readNumber(params, "yaw", 176),
+        yaw: readNumber(params, "yaw", 0),
         pitch: readNumber(params, "pitch", 0),
         roll: readNumber(params, "roll", 0),
         fov: readNumber(params, "fov", 80)
@@ -478,12 +590,14 @@
     function readNumber(params, key, fallback) {
       const raw = params.get(key);
       if (raw === null || raw === "") return fallback;
+
       const value = Number(raw);
       return Number.isFinite(value) ? value : fallback;
     }
 
     function parseTimeToSeconds(raw) {
       if (!raw) return 0;
+
       const t = String(raw).trim();
 
       if (/^-?\d+(\.\d+)?$/.test(t)) {
@@ -512,11 +626,11 @@
         tries += 1;
         applyDesiredView();
 
-        if (tries >= 10) {
+        if (tries >= 8) {
           clearInterval(applyTimer);
           applyTimer = null;
         }
-      }, 300);
+      }, 350);
     }
 
     function applyDesiredView() {
@@ -530,8 +644,10 @@
           fov: desired.fov
         });
 
+        const modeLabel = mode === "mobile" ? "Mobile" : "Desktop";
+
         updateStatus(
-          "Video: " + desired.videoId +
+          modeLabel + " mode | Video: " + desired.videoId +
           " | t=" + desired.time +
           "s | yaw=" + desired.yaw +
           " | pitch=" + desired.pitch +
@@ -543,6 +659,12 @@
       }
     }
 
+    function buildYouTubeUrl() {
+      if (!desired) return "https://www.youtube.com/";
+      const t = Math.max(0, Number(desired.time || 0));
+      return "https://youtu.be/" + encodeURIComponent(desired.videoId) + "?t=" + encodeURIComponent(t + "s");
+    }
+
     function updateStatus(text) {
       els.statusText.textContent = text;
     }
@@ -552,31 +674,11 @@
       els.errorBox.classList.add("visible");
     }
 
-    els.reapplyBtn.addEventListener("click", () => {
-      enhanceYouTubeIframePermissions();
-      applyDesiredViewRepeatedly();
-    });
+    els.reapplyBtn.addEventListener("click", applyDesiredViewRepeatedly);
+    els.motionBtn.addEventListener("click", requestMotionPermissions);
 
-    els.permissionBtn.addEventListener("click", requestMotionPermissions);
-
-
-    els.interactBtn.addEventListener("click", () => {
-      const overlay = document.querySelector(".overlay");
-      overlay.classList.add("interaction-hidden");
-
-      updateStatus("Interaction mode enabled. Drag directly on the video. Press Esc to show UI again.");
-
-      const restore = document.createElement("button");
-      restore.id = "restoreUiBtn";
-      restore.type = "button";
-      restore.textContent = "Show UI";
-      restore.title = "Show the wrapper controls";
-      restore.addEventListener("click", () => {
-        overlay.classList.remove("interaction-hidden");
-        restore.remove();
-      });
-
-      document.body.appendChild(restore);
+    els.youtubeBtn.addEventListener("click", () => {
+      window.open(buildYouTubeUrl(), "_blank", "noopener,noreferrer");
     });
 
     els.hideBtn.addEventListener("click", () => {
@@ -591,6 +693,11 @@
         restore.type = "button";
         restore.textContent = "Show UI";
         restore.title = "Show the wrapper controls";
+        restore.style.position = "fixed";
+        restore.style.right = "16px";
+        restore.style.bottom = "16px";
+        restore.style.zIndex = "15";
+        restore.style.background = "rgba(255,255,255,0.14)";
         restore.addEventListener("click", () => {
           uiHidden = false;
           overlay.style.display = "flex";
@@ -608,13 +715,7 @@
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        els.help.classList.remove("open");
-        const overlay = document.querySelector(".overlay");
-        overlay.classList.remove("interaction-hidden");
-        const restore = document.getElementById("restoreUiBtn");
-        if (restore) restore.remove();
-      }
+      if (event.key === "Escape") els.help.classList.remove("open");
       if (event.key.toLowerCase() === "r") applyDesiredViewRepeatedly();
       if (event.key.toLowerCase() === "h") els.help.classList.toggle("open");
     });
