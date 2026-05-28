@@ -2,605 +2,110 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>VizBuilts 360 Sensor-Control Test Viewer</title>
+  <title>Napco VizBuilts 360</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="VizBuilts 360 YouTube wrapper with mobile iframe permissions, touch-action fixes, and spherical view restoration." />
-  <link rel="icon" href="favicon.ico" sizes="any" />
-
+  <meta name="description" content="Napco VizBuilts 360 YouTube viewer with QR-linked time and viewpoint controls." />
+  <meta name="theme-color" content="#061225" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="VizBuilts 360" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="favicon.png" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
   <style>
-    :root {
-      color-scheme: dark;
-      --bg: #050509;
-      --panel: rgba(18, 18, 24, 0.88);
-      --panel-border: rgba(255, 255, 255, 0.14);
-      --text: #f3f4f6;
-      --muted: #a1a1aa;
-      --accent: #3b82f6;
-      --danger: #ef4444;
-    }
-
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      overscroll-behavior: none;
-    }
-
-    body {
-      overflow: hidden;
-      inset: 0;
-    }
-
-    #app {
-      position: fixed;
-      inset: 0;
-      background: #000;
-    }
-
-    #player,
-    #player iframe {
-      width: 100% !important;
-      height: 100% !important;
-      border: 0;
-      display: block;
-      pointer-events: auto !important;
-    }
-
-    .overlay {
-      position: fixed;
-      left: max(12px, env(safe-area-inset-left));
-      right: max(12px, env(safe-area-inset-right));
-      bottom: max(12px, env(safe-area-inset-bottom));
-      z-index: 10;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      justify-content: space-between;
-      pointer-events: none;
-    }
-
-    .panel {
-      pointer-events: auto;
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
-      border-radius: 14px;
-      padding: 10px 12px;
-      box-shadow: 0 16px 60px rgba(0, 0, 0, 0.45);
-    }
-
-    .status {
-      min-width: 240px;
-      max-width: min(720px, calc(100vw - 24px));
-    }
-
-    .status-title {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 4px;
-    }
-
-    .status-main {
-      font-size: 13px;
-      line-height: 1.35;
-      word-break: break-word;
-    }
-
-    .controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    button,
-    a.button {
-      appearance: none;
-      border: 0;
-      border-radius: 10px;
-      padding: 9px 12px;
-      background: var(--accent);
-      color: #fff;
-      font: inherit;
-      font-size: 14px;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 38px;
-      touch-action: manipulation;
-    }
-
-    button.secondary,
-    a.button.secondary {
-      background: rgba(255, 255, 255, 0.14);
-    }
-
-    button.danger {
-      background: var(--danger);
-    }
-
-    #help {
-      position: fixed;
-      inset: 12px;
-      z-index: 20;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.66);
-      touch-action: manipulation;
-    }
-
-    #help.open {
-      display: flex;
-    }
-
-    .help-card {
-      width: min(760px, calc(100vw - 24px));
-      max-height: calc(100vh - 24px);
-      overflow: auto;
-      background: #15151d;
-      border: 1px solid var(--panel-border);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 24px 90px rgba(0, 0, 0, 0.55);
-      touch-action: pan-y;
-    }
-
-    .help-card h1 {
-      margin: 0 0 10px;
-      font-size: 22px;
-    }
-
-    .help-card code {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 2px 5px;
-      border-radius: 6px;
-      word-break: break-all;
-    }
-
-    .help-card p,
-    .help-card li {
-      color: #d4d4d8;
-      line-height: 1.45;
-    }
-
-    .top-error {
-      position: fixed;
-      top: max(12px, env(safe-area-inset-top));
-      left: max(12px, env(safe-area-inset-left));
-      right: max(12px, env(safe-area-inset-right));
-      z-index: 30;
-      background: rgba(127, 29, 29, 0.94);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 14px;
-      padding: 12px 14px;
-      display: none;
-      box-shadow: 0 16px 60px rgba(0, 0, 0, 0.45);
-    }
-
-    .top-error.visible {
-      display: block;
-    }
-
-    #restoreUiBtn {
-      position: fixed;
-      right: max(12px, env(safe-area-inset-right));
-      bottom: max(12px, env(safe-area-inset-bottom));
-      z-index: 15;
-      background: rgba(255, 255, 255, 0.14);
-    }
-
-    @media (max-width: 720px) {
-      .overlay {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .status {
-        min-width: 0;
-      }
-
-      .controls {
-        justify-content: stretch;
-      }
-
-      .controls button,
-      .controls a.button {
-        flex: 1 1 auto;
-      }
-    }
-
-    /*
-      Do not force touch-action on the YouTube iframe.
-      YouTube's own 360 interaction layer needs native pointer/touch handling.
-    */
+    :root{color-scheme:dark;--bg:#050814;--panel:rgba(8,14,28,.9);--border:rgba(112,178,255,.25);--text:#eef6ff;--muted:#9fb5d1;--accent:#38bdf8;--blue:#2563eb;--ok:#22c55e;--danger:#ef4444}
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;background:#000;color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+    #app,#viewer,#player{position:fixed;inset:0;background:#000}
+    #player iframe{width:100%;height:100%;border:0;pointer-events:auto}
+    .panel{border:1px solid var(--border);background:var(--panel);box-shadow:0 20px 80px rgba(0,0,0,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:18px}
+    .topbar{position:fixed;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));z-index:20;display:flex;justify-content:space-between;gap:12px;pointer-events:none}
+    .brand{pointer-events:auto;display:flex;align-items:center;gap:10px;padding:8px 10px}
+    .brand img{width:42px;height:42px;border-radius:12px;object-fit:cover;box-shadow:0 0 18px rgba(56,189,248,.3)}
+    .brand-title{font-weight:800;line-height:1.05;font-size:15px}.brand-subtitle{color:var(--muted);font-size:12px;margin-top:2px}
+    .top-actions{pointer-events:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    button,select{font:inherit}
+    button,a.button{appearance:none;border:1px solid rgba(255,255,255,.1);border-radius:12px;min-height:42px;padding:8px 12px;color:#fff;background:linear-gradient(180deg,rgba(56,189,248,.24),rgba(37,99,235,.26));cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+    button.secondary{background:rgba(255,255,255,.1)}button.ok{background:rgba(34,197,94,.22)}button.big{font-size:20px;font-weight:800}
+    select{min-height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.1);color:#fff;padding:0 10px}
+    .status{position:fixed;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:calc(var(--controls-height,220px) + max(12px,env(safe-area-inset-bottom)));z-index:16;padding:10px 12px;color:var(--muted);font-size:13px;line-height:1.35;pointer-events:none}.status strong{color:var(--text)}
+    .controls-shell{position:fixed;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));z-index:18;display:grid;grid-template-columns:minmax(220px,1fr) minmax(260px,1.15fr) minmax(220px,1fr);gap:10px;padding:10px}
+    .control-card{padding:10px;min-width:0}.card-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+    .pad{display:grid;grid-template-columns:repeat(3,minmax(54px,1fr));grid-template-rows:repeat(3,48px);gap:8px}.spacer{visibility:hidden}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row+.row{margin-top:8px}
+    .metric-grid{display:grid;grid-template-columns:repeat(2,minmax(90px,1fr));gap:8px}.metric{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.07);border-radius:12px;padding:8px}.metric-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em}.metric-value{font-size:18px;font-weight:800;margin-top:2px}
+    .hidden{display:none!important}
+    #help{position:fixed;inset:12px;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.68)}#help.open{display:flex}.help-card{width:min(840px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;padding:18px}.help-card h1{margin:0 0 8px;font-size:24px}.help-card p,.help-card li{color:#d6e4f7;line-height:1.5}.help-card code{background:rgba(255,255,255,.1);padding:2px 5px;border-radius:6px;word-break:break-all}
+    .toast{position:fixed;top:max(76px,calc(12px + env(safe-area-inset-top)));right:max(12px,env(safe-area-inset-right));z-index:50;width:min(420px,calc(100vw - 24px));padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.16);background:rgba(8,14,28,.96);color:var(--text);box-shadow:0 20px 80px rgba(0,0,0,.55);display:none}.toast.visible{display:block}
+    @media(max-width:920px){.controls-shell{grid-template-columns:1fr;max-height:48vh;overflow:auto}.status{bottom:calc(48vh + max(24px,env(safe-area-inset-bottom)))}.brand-subtitle{display:none}}
+    @media(max-width:520px){.top-actions button{min-height:36px;padding:6px 9px;font-size:13px}.brand img{width:36px;height:36px}.controls-shell{left:8px;right:8px;bottom:8px}.pad{grid-template-rows:repeat(3,44px)}}
   </style>
 </head>
-
 <body>
-  <div id="app">
-    <div id="player" aria-label="YouTube 360 video player"></div>
+  <main id="app"><section id="viewer" aria-label="YouTube 360 viewer"><div id="player"></div></section></main>
+  <div class="topbar">
+    <div class="brand panel"><img src="icon-192.png" alt="Napco VizBuilts 360 icon"><div><div class="brand-title">Napco</div><div class="brand-subtitle">VizBuilts 360</div></div></div>
+    <div class="top-actions"><button id="installBtn" class="secondary hidden">Install</button><button id="youtubeBtn" class="secondary">YouTube</button><button id="helpBtn">Help</button><button id="hideControlsBtn" class="secondary">Hide Controls</button></div>
   </div>
-
-  <div id="errorBox" class="top-error" role="alert"></div>
-
-  <div class="overlay" aria-label="Viewer controls">
-    <div class="panel status">
-      <div class="status-title">VizBuilts 360 Sensor-Control Test</div>
-      <div id="statusText" class="status-main">Loading…</div>
+  <div id="status" class="status panel">Loading Napco VizBuilts 360…</div>
+  <section id="controlsShell" class="controls-shell panel" aria-label="Custom YouTube 360 view controls">
+    <div class="control-card">
+      <div class="card-title"><span>Look Direction</span><span id="stepReadout">Step 10°</span></div>
+      <div class="pad"><span class="spacer"></span><button id="pitchUpBtn" class="big" aria-label="Look up">↑</button><span class="spacer"></span><button id="yawLeftBtn" class="big" aria-label="Look left">←</button><button id="resetBtn" class="secondary" aria-label="Reset to QR view">Reset</button><button id="yawRightBtn" class="big" aria-label="Look right">→</button><span class="spacer"></span><button id="pitchDownBtn" class="big" aria-label="Look down">↓</button><span class="spacer"></span></div>
+      <div class="row"><button id="rollLeftBtn" class="secondary">Roll −</button><button id="rollRightBtn" class="secondary">Roll +</button></div>
     </div>
-
-    <div class="panel controls">
-      <button id="reapplyBtn" type="button" class="secondary" title="Reapply yaw, pitch, roll, and FOV from the URL">Reapply View</button>
-      <button id="permissionBtn" type="button" class="secondary" title="Request motion permissions where supported">Enable Motion</button>
-      <button id="hideBtn" type="button" class="secondary" title="Hide the bottom controls">Hide UI</button>
-      <button id="helpBtn" type="button" title="Show help">Help</button>
+    <div class="control-card">
+      <div class="card-title"><span>View State</span><span id="connectionStatus">API</span></div>
+      <div class="metric-grid"><div class="metric"><div class="metric-label">Time</div><div id="timeVal" class="metric-value">—</div></div><div class="metric"><div class="metric-label">FOV</div><div id="fovVal" class="metric-value">—</div></div><div class="metric"><div class="metric-label">Yaw</div><div id="yawVal" class="metric-value">—</div></div><div class="metric"><div class="metric-label">Pitch</div><div id="pitchVal" class="metric-value">—</div></div></div>
+      <div class="row"><button id="reapplyBtn" class="ok">Reapply QR View</button><button id="copyBtn" class="secondary">Copy Current Link</button></div>
+      <div class="row"><label for="stepSelect">Step</label><select id="stepSelect" aria-label="Control step size"><option value="1">1° Fine</option><option value="5">5°</option><option value="10" selected>10° Standard</option><option value="15">15°</option><option value="30">30° Coarse</option></select><label for="timeStepSelect">Time</label><select id="timeStepSelect" aria-label="Time skip size"><option value="1">1s</option><option value="5" selected>5s</option><option value="10">10s</option><option value="30">30s</option></select></div>
     </div>
-  </div>
-
-  <div id="help" aria-modal="true" role="dialog">
-    <div class="help-card">
-      <h1>VizBuilts 360 Sensor-Control Test Viewer</h1>
-      <p>This viewer is meant to test whether YouTube's embedded 360 player will honor mobile touch/gyro interaction inside a wrapper page.</p>
-      <p><strong>Example URL:</strong></p>
-      <p><code>?video=zxZBpxrye3o&amp;t=2.7&amp;yaw=176&amp;pitch=0&amp;roll=0&amp;fov=80</code></p>
-      <p>This version adds iframe permissions for <code>accelerometer</code>, <code>gyroscope</code>, <code>fullscreen</code>, <code>autoplay</code>, <code>encrypted-media</code>, and <code>picture-in-picture</code>.</p>
-      <p>It also tests <code>enableOrientationSensor:false</code> on mobile-like devices when calling <code>setSphericalProperties()</code>. This asks YouTube to honor URL/API yaw, pitch, roll, and FOV instead of letting phone gyro orientation override those values.</p>
-      <p>If mobile still shows flat/equirectangular video or does not allow touch look-around, that likely means YouTube is not enabling its mobile embedded 360 renderer for this browser/session.</p>
-      <div class="controls">
-        <button id="closeHelpBtn" type="button">Close</button>
-      </div>
+    <div class="control-card">
+      <div class="card-title"><span>Playback / Zoom</span><span>YouTube Source</span></div>
+      <div class="row"><button id="playPauseBtn">Play / Pause</button><button id="backBtn" class="secondary">− Time</button><button id="forwardBtn" class="secondary">+ Time</button></div>
+      <div class="row"><button id="zoomInBtn">Zoom In</button><button id="zoomOutBtn">Zoom Out</button><button id="fovResetBtn" class="secondary">FOV 80</button></div>
+      <div class="row"><button id="fullscreenBtn" class="secondary">Fullscreen</button><button id="motionBtn" class="secondary">Enable Motion</button></div>
     </div>
-  </div>
-
+  </section>
+  <div id="help" aria-modal="true" role="dialog"><div class="help-card panel"><h1>Napco VizBuilts 360</h1><p>This viewer uses YouTube as the video source, but the look-around controls are provided outside the YouTube viewing window. This avoids relying on YouTube's embedded drag/touch 360 controls.</p><p><strong>QR URL format:</strong></p><p><code>https://vizbuilts.github.io/vr360/?video=VIDEO_ID&amp;t=2.7&amp;yaw=176&amp;pitch=0&amp;roll=0&amp;fov=80</code></p><ul><li>Arrow buttons adjust yaw and pitch.</li><li>Roll buttons adjust camera tilt.</li><li>Zoom buttons adjust FOV.</li><li>Keyboard: arrow keys look around, plus/minus zoom, space play/pause, R reapplies QR view.</li></ul><p>Internet is required for YouTube playback. The PWA shell can install on a device, but the YouTube video still streams from YouTube.</p><div class="row"><button id="closeHelpBtn">Close</button></div></div></div>
+  <div id="toast" class="toast" role="status"></div>
   <script src="https://www.youtube.com/iframe_api"></script>
-
   <script>
-    let player = null;
-    let desired = null;
-    let uiHidden = false;
-    let applyTimer = null;
-
-    const isMobileLike =
-      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "") ||
-      (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
-      (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
-
-    const els = {
-      statusText: document.getElementById("statusText"),
-      errorBox: document.getElementById("errorBox"),
-      reapplyBtn: document.getElementById("reapplyBtn"),
-      permissionBtn: document.getElementById("permissionBtn"),
-      hideBtn: document.getElementById("hideBtn"),
-      helpBtn: document.getElementById("helpBtn"),
-      help: document.getElementById("help"),
-      closeHelpBtn: document.getElementById("closeHelpBtn")
-    };
-
-    function onYouTubeIframeAPIReady() {
-      boot();
-    }
-
-    function boot() {
-      try {
-        desired = readViewerParams();
-
-        player = new YT.Player("player", {
-          host: "https://www.youtube.com",
-          width: "100%",
-          height: "100%",
-          videoId: desired.videoId,
-          playerVars: {
-            start: Math.floor(desired.time),
-            autoplay: 1,
-            controls: 1,
-            rel: 0,
-            modestbranding: 1,
-            playsinline: 1,
-            enablejsapi: 1,
-            fs: 1,
-            iv_load_policy: 3,
-            origin: window.location.origin
-          },
-          events: {
-            onReady: onPlayerReady,
-            onStateChange: onPlayerStateChange,
-            onError: onPlayerError
-          }
-        });
-
-        updateStatus("Loading video…");
-      } catch (err) {
-        showError(err.message);
-        updateStatus("Missing or invalid video parameters.");
-      }
-    }
-
-    function onPlayerReady() {
-      enhanceYouTubeIframePermissions();
-
-      updateStatus(
-        isMobileLike
-          ? "Mobile-like device detected. Seeking, applying saved view, and disabling YouTube orientation sensor for API yaw/pitch/roll test…"
-          : "Desktop-like device detected. Seeking and applying saved view…"
-      );
-      player.seekTo(desired.time, true);
-
-      applyDesiredViewRepeatedly();
-
-      setTimeout(() => {
-        enhanceYouTubeIframePermissions();
-        applyDesiredViewRepeatedly();
-        tryPlay();
-      }, 750);
-
-      setTimeout(() => {
-        enhanceYouTubeIframePermissions();
-        applyDesiredViewRepeatedly();
-      }, 1800);
-
-      tryPlay();
-    }
-
-    function onPlayerStateChange() {
-      enhanceYouTubeIframePermissions();
-      applyDesiredViewRepeatedly();
-    }
-
-    function onPlayerError(event) {
-      showError("YouTube player error: " + event.data);
-    }
-
-    function enhanceYouTubeIframePermissions() {
-      const iframe = document.querySelector("#player iframe");
-      if (!iframe) return;
-
-      iframe.setAttribute(
-        "allow",
-        "accelerometer; gyroscope; autoplay; encrypted-media; fullscreen; picture-in-picture; web-share"
-      );
-      iframe.setAttribute("allowfullscreen", "true");
-      iframe.setAttribute("webkitallowfullscreen", "true");
-      iframe.setAttribute("mozallowfullscreen", "true");
-      iframe.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
-
-      iframe.style.width = "100%";
-      iframe.style.height = "100%";
-      iframe.style.border = "0";
-      iframe.style.pointerEvents = "auto";
-      // Do not set iframe.style.touchAction here.
-      // Forcing touch-action can break YouTube's own 360 interaction layer.
-    }
-
-    async function requestMotionPermissions() {
-      try {
-        let granted = false;
-
-        if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
-          const result = await DeviceMotionEvent.requestPermission();
-          granted = result === "granted";
-        }
-
-        if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
-          const result = await DeviceOrientationEvent.requestPermission();
-          granted = granted || result === "granted";
-        }
-
-        enhanceYouTubeIframePermissions();
-        applyDesiredViewRepeatedly();
-
-        updateStatus(granted ? "Motion permission requested/granted. Reapplying view…" : "Motion permission request completed. Reapplying view…");
-      } catch (err) {
-        showError("Motion permission request failed: " + err.message);
-      }
-    }
-
-    function tryPlay() {
-      try {
-        player.playVideo();
-      } catch (err) {
-        // Mobile browsers may require a user gesture. User can press YouTube play.
-      }
-    }
-
-    function readViewerParams() {
-      const params = new URLSearchParams(location.search);
-
-      let videoId = params.get("video") || params.get("v") || params.get("id");
-      const sourceUrl = params.get("url");
-
-      if (sourceUrl && !videoId) {
-        const parsed = parseYouTubeUrl(sourceUrl);
-        videoId = parsed.videoId;
-
-        if (!params.has("t") && !params.has("time") && parsed.startSeconds) {
-          params.set("t", String(parsed.startSeconds));
-        }
-      }
-
-      if (!videoId) {
-        videoId = "zxZBpxrye3o";
-      }
-
-      const time = parseTimeToSeconds(params.get("t") || params.get("time") || "2.7");
-
-      return {
-        videoId,
-        time,
-        yaw: readNumber(params, "yaw", 176),
-        pitch: readNumber(params, "pitch", 0),
-        roll: readNumber(params, "roll", 0),
-        fov: readNumber(params, "fov", 80)
-      };
-    }
-
-    function parseYouTubeUrl(rawUrl) {
-      const url = new URL(rawUrl.trim());
-      let videoId = null;
-
-      if (url.hostname.includes("youtu.be")) {
-        videoId = url.pathname.replace("/", "").split("/")[0];
-      } else if (url.hostname.includes("youtube.com")) {
-        videoId = url.searchParams.get("v");
-
-        if (!videoId && url.pathname.includes("/shorts/")) {
-          videoId = url.pathname.split("/shorts/")[1].split("/")[0];
-        }
-
-        if (!videoId && url.pathname.includes("/embed/")) {
-          videoId = url.pathname.split("/embed/")[1].split("/")[0];
-        }
-      }
-
-      const startSeconds = parseTimeToSeconds(url.searchParams.get("t") || url.searchParams.get("start") || "0");
-
-      if (!videoId) {
-        throw new Error("Could not parse YouTube URL.");
-      }
-
-      return { videoId, startSeconds };
-    }
-
-    function readNumber(params, key, fallback) {
-      const raw = params.get(key);
-      if (raw === null || raw === "") return fallback;
-      const value = Number(raw);
-      return Number.isFinite(value) ? value : fallback;
-    }
-
-    function parseTimeToSeconds(raw) {
-      if (!raw) return 0;
-      const t = String(raw).trim();
-
-      if (/^-?\d+(\.\d+)?$/.test(t)) {
-        return Math.max(0, Number(t));
-      }
-
-      let seconds = 0;
-      const h = t.match(/(\d+(?:\.\d+)?)h/);
-      const m = t.match(/(\d+(?:\.\d+)?)m/);
-      const s = t.match(/(\d+(?:\.\d+)?)s/);
-
-      if (h) seconds += Number(h[1]) * 3600;
-      if (m) seconds += Number(m[1]) * 60;
-      if (s) seconds += Number(s[1]);
-
-      return Math.max(0, seconds);
-    }
-
-    function applyDesiredViewRepeatedly() {
-      if (!player || !desired) return;
-
-      clearInterval(applyTimer);
-
-      let tries = 0;
-      applyTimer = setInterval(() => {
-        tries += 1;
-        applyDesiredView();
-
-        if (tries >= 10) {
-          clearInterval(applyTimer);
-          applyTimer = null;
-        }
-      }, 300);
-    }
-
-    function applyDesiredView() {
-      if (!player || !desired || typeof player.setSphericalProperties !== "function") return;
-
-      try {
-        const sphericalProps = {
-          yaw: desired.yaw,
-          pitch: desired.pitch,
-          roll: desired.roll,
-          fov: desired.fov
-        };
-
-        /*
-          Important mobile test:
-          On mobile, YouTube may let the device orientation sensor override
-          yaw/pitch/roll. Setting enableOrientationSensor:false asks the
-          player to honor API-provided yaw/pitch/roll instead.
-        */
-        if (isMobileLike) {
-          sphericalProps.enableOrientationSensor = false;
-        }
-
-        player.setSphericalProperties(sphericalProps);
-
-        updateStatus(
-          (isMobileLike ? "Mobile API-control test | " : "Desktop mode | ") +
-          "Video: " + desired.videoId +
-          " | t=" + desired.time +
-          "s | yaw=" + desired.yaw +
-          " | pitch=" + desired.pitch +
-          " | roll=" + desired.roll +
-          " | fov=" + desired.fov
-        );
-      } catch (err) {
-        showError("Could not apply spherical view. Confirm this is a YouTube 360 video.");
-      }
-    }
-
-    function updateStatus(text) {
-      els.statusText.textContent = text;
-    }
-
-    function showError(message) {
-      els.errorBox.textContent = message;
-      els.errorBox.classList.add("visible");
-    }
-
-    els.reapplyBtn.addEventListener("click", () => {
-      enhanceYouTubeIframePermissions();
-      applyDesiredViewRepeatedly();
-    });
-
-    els.permissionBtn.addEventListener("click", requestMotionPermissions);
-
-    els.hideBtn.addEventListener("click", () => {
-      const overlay = document.querySelector(".overlay");
-      uiHidden = !uiHidden;
-
-      if (uiHidden) {
-        overlay.style.display = "none";
-
-        const restore = document.createElement("button");
-        restore.id = "restoreUiBtn";
-        restore.type = "button";
-        restore.textContent = "Show UI";
-        restore.title = "Show the wrapper controls";
-        restore.addEventListener("click", () => {
-          uiHidden = false;
-          overlay.style.display = "flex";
-          restore.remove();
-        });
-
-        document.body.appendChild(restore);
-      }
-    });
-
-    els.helpBtn.addEventListener("click", () => els.help.classList.add("open"));
-    els.closeHelpBtn.addEventListener("click", () => els.help.classList.remove("open"));
-    els.help.addEventListener("click", (event) => {
-      if (event.target === els.help) els.help.classList.remove("open");
-    });
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") els.help.classList.remove("open");
-      if (event.key.toLowerCase() === "r") applyDesiredViewRepeatedly();
-      if (event.key.toLowerCase() === "h") els.help.classList.toggle("open");
-    });
+    let player=null,desired=null,current=null,applyTimer=null,telemetryTimer=null,deferredInstallPrompt=null,controlsHidden=false;
+    const $=id=>document.getElementById(id);
+    const els={status:$("status"),toast:$("toast"),controlsShell:$("controlsShell"),installBtn:$("installBtn"),youtubeBtn:$("youtubeBtn"),helpBtn:$("helpBtn"),closeHelpBtn:$("closeHelpBtn"),help:$("help"),hideControlsBtn:$("hideControlsBtn"),yawLeftBtn:$("yawLeftBtn"),yawRightBtn:$("yawRightBtn"),pitchUpBtn:$("pitchUpBtn"),pitchDownBtn:$("pitchDownBtn"),rollLeftBtn:$("rollLeftBtn"),rollRightBtn:$("rollRightBtn"),zoomInBtn:$("zoomInBtn"),zoomOutBtn:$("zoomOutBtn"),fovResetBtn:$("fovResetBtn"),resetBtn:$("resetBtn"),reapplyBtn:$("reapplyBtn"),copyBtn:$("copyBtn"),stepSelect:$("stepSelect"),timeStepSelect:$("timeStepSelect"),stepReadout:$("stepReadout"),playPauseBtn:$("playPauseBtn"),backBtn:$("backBtn"),forwardBtn:$("forwardBtn"),fullscreenBtn:$("fullscreenBtn"),motionBtn:$("motionBtn"),timeVal:$("timeVal"),yawVal:$("yawVal"),pitchVal:$("pitchVal"),fovVal:$("fovVal"),connectionStatus:$("connectionStatus")};
+    function onYouTubeIframeAPIReady(){boot()}
+    function boot(){try{desired=readViewerParams();current={...desired};updateStatus("Loading YouTube 360 video…");player=new YT.Player("player",{host:"https://www.youtube.com",width:"100%",height:"100%",videoId:desired.videoId,playerVars:{start:Math.floor(desired.time),autoplay:1,controls:1,rel:0,modestbranding:1,playsinline:1,enablejsapi:1,fs:1,iv_load_policy:3,origin:window.location.origin},events:{onReady:onPlayerReady,onStateChange:onPlayerStateChange,onError:onPlayerError}});bindUI();updateReadouts();setupPWA()}catch(err){showToast(err.message);updateStatus("Missing or invalid video parameters.")}}
+    function onPlayerReady(){enhanceIframePermissions();updateStatus("Player ready. Applying QR view. Use the VizBuilts controls below to look around.");seekTo(current.time);applyViewRepeatedly();try{player.playVideo()}catch(err){}startTelemetry()}
+    function onPlayerStateChange(){enhanceIframePermissions();syncTimeFromPlayer()}
+    function onPlayerError(event){showToast("YouTube player error: "+event.data);updateStatus("YouTube player error: "+event.data)}
+    function bindUI(){els.stepSelect.addEventListener("change",()=>els.stepReadout.textContent="Step "+getStep()+"°");els.yawLeftBtn.addEventListener("click",()=>adjustView({yaw:-getStep()}));els.yawRightBtn.addEventListener("click",()=>adjustView({yaw:getStep()}));els.pitchUpBtn.addEventListener("click",()=>adjustView({pitch:getStep()}));els.pitchDownBtn.addEventListener("click",()=>adjustView({pitch:-getStep()}));els.rollLeftBtn.addEventListener("click",()=>adjustView({roll:-getStep()}));els.rollRightBtn.addEventListener("click",()=>adjustView({roll:getStep()}));els.zoomInBtn.addEventListener("click",()=>adjustView({fov:-5}));els.zoomOutBtn.addEventListener("click",()=>adjustView({fov:5}));els.fovResetBtn.addEventListener("click",()=>{current.fov=80;applyCurrentView()});els.resetBtn.addEventListener("click",reapplyQRView);els.reapplyBtn.addEventListener("click",reapplyQRView);els.copyBtn.addEventListener("click",copyCurrentLink);els.playPauseBtn.addEventListener("click",togglePlayPause);els.backBtn.addEventListener("click",()=>skipTime(-getTimeStep()));els.forwardBtn.addEventListener("click",()=>skipTime(getTimeStep()));els.fullscreenBtn.addEventListener("click",requestFullscreen);els.motionBtn.addEventListener("click",requestMotionPermissions);els.youtubeBtn.addEventListener("click",()=>window.open(buildYouTubeUrl(),"_blank","noopener,noreferrer"));els.helpBtn.addEventListener("click",()=>els.help.classList.add("open"));els.closeHelpBtn.addEventListener("click",()=>els.help.classList.remove("open"));els.help.addEventListener("click",e=>{if(e.target===els.help)els.help.classList.remove("open")});els.hideControlsBtn.addEventListener("click",toggleControls);document.addEventListener("keydown",handleKeyboard)}
+    function handleKeyboard(e){if(e.target&&["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName))return;const s=getStep();if(e.key==="ArrowLeft"){e.preventDefault();adjustView({yaw:-s})}else if(e.key==="ArrowRight"){e.preventDefault();adjustView({yaw:s})}else if(e.key==="ArrowUp"){e.preventDefault();adjustView({pitch:s})}else if(e.key==="ArrowDown"){e.preventDefault();adjustView({pitch:-s})}else if(e.key==="+"||e.key==="="){e.preventDefault();adjustView({fov:-5})}else if(e.key==="-"||e.key==="_"){e.preventDefault();adjustView({fov:5})}else if(e.key.toLowerCase()==="r"){e.preventDefault();reapplyQRView()}else if(e.key===" "){e.preventDefault();togglePlayPause()}else if(e.key.toLowerCase()==="h"){e.preventDefault();toggleControls()}else if(e.key==="Escape"){els.help.classList.remove("open");if(controlsHidden)toggleControls()}}
+    function adjustView(d){current.yaw=normalizeYaw(current.yaw+(d.yaw||0));current.pitch=clamp(current.pitch+(d.pitch||0),-90,90);current.roll=normalizeRoll(current.roll+(d.roll||0));current.fov=clamp(current.fov+(d.fov||0),30,120);applyCurrentView()}
+    function applyCurrentView(){if(!player||typeof player.setSphericalProperties!=="function")return;try{player.setSphericalProperties({yaw:current.yaw,pitch:current.pitch,roll:current.roll,fov:current.fov,enableOrientationSensor:false});updateReadouts();updateStatus("Custom controls active. YouTube view updated through the IFrame API.")}catch(err){showToast("Could not update YouTube spherical view.")}}
+    function applyViewRepeatedly(){clearInterval(applyTimer);let tries=0;applyTimer=setInterval(()=>{tries++;applyCurrentView();if(tries>=8){clearInterval(applyTimer);applyTimer=null}},350)}
+    function reapplyQRView(){current={...desired};seekTo(current.time);applyViewRepeatedly();showToast("QR viewpoint reapplied.")}
+    function seekTo(seconds){current.time=Math.max(0,Number(seconds)||0);if(player&&typeof player.seekTo==="function")player.seekTo(current.time,true);updateReadouts()}
+    function skipTime(delta){syncTimeFromPlayer();seekTo(current.time+delta)}
+    function syncTimeFromPlayer(){if(!player||typeof player.getCurrentTime!=="function")return;try{current.time=round(player.getCurrentTime(),2);updateReadouts()}catch(err){}}
+    function startTelemetry(){clearInterval(telemetryTimer);telemetryTimer=setInterval(()=>{syncTimeFromPlayer();try{if(player&&typeof player.getSphericalProperties==="function"){const s=player.getSphericalProperties()||{};if(Number.isFinite(Number(s.yaw)))current.yaw=round(Number(s.yaw),2);if(Number.isFinite(Number(s.pitch)))current.pitch=round(Number(s.pitch),2);if(Number.isFinite(Number(s.roll)))current.roll=round(Number(s.roll),2);if(Number.isFinite(Number(s.fov)))current.fov=round(Number(s.fov),2)}}catch(err){}updateReadouts()},1000)}
+    function togglePlayPause(){if(!player||typeof player.getPlayerState!=="function")return;player.getPlayerState()===YT.PlayerState.PLAYING?player.pauseVideo():player.playVideo()}
+    function requestFullscreen(){const el=document.documentElement;(el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el)}
+    async function requestMotionPermissions(){try{let requested=false,granted=false;if(typeof DeviceMotionEvent!=="undefined"&&typeof DeviceMotionEvent.requestPermission==="function"){requested=true;granted=(await DeviceMotionEvent.requestPermission())==="granted"}if(typeof DeviceOrientationEvent!=="undefined"&&typeof DeviceOrientationEvent.requestPermission==="function"){requested=true;granted=granted||(await DeviceOrientationEvent.requestPermission())==="granted"}enhanceIframePermissions();applyViewRepeatedly();showToast(requested?(granted?"Motion permission granted.":"Motion permission was not granted."):"No motion permission prompt exposed by this browser.")}catch(err){showToast("Motion permission request failed: "+err.message)}}
+    function enhanceIframePermissions(){const iframe=document.querySelector("#player iframe");if(!iframe)return;iframe.setAttribute("allow","accelerometer; gyroscope; autoplay; encrypted-media; fullscreen; picture-in-picture; web-share");iframe.setAttribute("allowfullscreen","true");iframe.setAttribute("webkitallowfullscreen","true");iframe.setAttribute("mozallowfullscreen","true");iframe.setAttribute("referrerpolicy","strict-origin-when-cross-origin");iframe.style.width="100%";iframe.style.height="100%";iframe.style.border="0";iframe.style.pointerEvents="auto"}
+    function toggleControls(){controlsHidden=!controlsHidden;els.controlsShell.classList.toggle("hidden",controlsHidden);els.status.classList.toggle("hidden",controlsHidden);els.hideControlsBtn.textContent=controlsHidden?"Show Controls":"Hide Controls"}
+    function getStep(){return Number(els.stepSelect.value||10)}function getTimeStep(){return Number(els.timeStepSelect.value||5)}
+    function updateReadouts(){els.stepReadout.textContent="Step "+getStep()+"°";els.timeVal.textContent=(current?.time??0).toFixed(2)+"s";els.yawVal.textContent=round(current?.yaw??0,2)+"°";els.pitchVal.textContent=round(current?.pitch??0,2)+"°";els.fovVal.textContent=round(current?.fov??80,2)+"°";els.connectionStatus.textContent=navigator.onLine?"Online":"Offline"}
+    function updateStatus(text){els.status.innerHTML="<strong>Napco VizBuilts 360:</strong> "+escapeHtml(text)}
+    function showToast(message){els.toast.textContent=message;els.toast.classList.add("visible");clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>els.toast.classList.remove("visible"),3600)}
+    function copyCurrentLink(){syncTimeFromPlayer();const url=location.origin+location.pathname+"?video="+encodeURIComponent(desired.videoId)+"&t="+encodeURIComponent(round(current.time,2))+"&yaw="+encodeURIComponent(round(current.yaw,2))+"&pitch="+encodeURIComponent(round(current.pitch,2))+"&roll="+encodeURIComponent(round(current.roll,2))+"&fov="+encodeURIComponent(round(current.fov,2));navigator.clipboard.writeText(url).then(()=>showToast("Current VizBuilts 360 link copied.")).catch(()=>showToast("Copy failed. Link: "+url))}
+    function buildYouTubeUrl(){return desired?"https://youtu.be/"+encodeURIComponent(desired.videoId)+"?t="+encodeURIComponent(round(current.time||desired.time||0,2)+"s"):"https://www.youtube.com/"}
+    function readViewerParams(){const params=new URLSearchParams(location.search);let videoId=params.get("video")||params.get("v")||params.get("id");const sourceUrl=params.get("url");if(sourceUrl&&!videoId){const parsed=parseYouTubeUrl(sourceUrl);videoId=parsed.videoId;if(!params.has("t")&&!params.has("time")&&parsed.startSeconds)params.set("t",String(parsed.startSeconds))}if(!videoId)throw new Error("No video ID found. Use ?video=VIDEO_ID&t=18&yaw=90&pitch=-7&roll=0&fov=80");return{videoId,time:parseTimeToSeconds(params.get("t")||params.get("time")||"0"),yaw:readNumber(params,"yaw",0),pitch:readNumber(params,"pitch",0),roll:readNumber(params,"roll",0),fov:readNumber(params,"fov",80)}}
+    function parseYouTubeUrl(rawUrl){const url=new URL(rawUrl.trim());let videoId=null;if(url.hostname.includes("youtu.be"))videoId=url.pathname.replace("/","").split("/")[0];else if(url.hostname.includes("youtube.com")){videoId=url.searchParams.get("v");if(!videoId&&url.pathname.includes("/shorts/"))videoId=url.pathname.split("/shorts/")[1].split("/")[0];if(!videoId&&url.pathname.includes("/embed/"))videoId=url.pathname.split("/embed/")[1].split("/")[0]}const startSeconds=parseTimeToSeconds(url.searchParams.get("t")||url.searchParams.get("start")||"0");if(!videoId)throw new Error("Could not parse YouTube URL.");return{videoId,startSeconds}}
+    function readNumber(params,key,fallback){const raw=params.get(key);if(raw===null||raw==="")return fallback;const value=Number(raw);return Number.isFinite(value)?value:fallback}
+    function parseTimeToSeconds(raw){if(!raw)return 0;const t=String(raw).trim();if(/^-?\d+(\.\d+)?$/.test(t))return Math.max(0,Number(t));let seconds=0;const h=t.match(/(\d+(?:\.\d+)?)h/),m=t.match(/(\d+(?:\.\d+)?)m/),s=t.match(/(\d+(?:\.\d+)?)s/);if(h)seconds+=Number(h[1])*3600;if(m)seconds+=Number(m[1])*60;if(s)seconds+=Number(s[1]);return Math.max(0,seconds)}
+    function normalizeYaw(value){let v=Number(value)||0;v=v%360;if(v<0)v+=360;return round(v,2)}function normalizeRoll(value){let v=Number(value)||0;while(v>180)v-=360;while(v<-180)v+=360;return round(v,2)}function clamp(value,min,max){return Math.min(max,Math.max(min,Number(value)||0))}function round(value,decimals=2){const factor=Math.pow(10,decimals);return Math.round((Number(value)||0)*factor)/factor}function escapeHtml(value){return String(value).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+    function setupPWA(){if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));window.addEventListener("beforeinstallprompt",event=>{event.preventDefault();deferredInstallPrompt=event;els.installBtn.classList.remove("hidden")});els.installBtn.addEventListener("click",async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;els.installBtn.classList.add("hidden")});window.addEventListener("online",updateReadouts);window.addEventListener("offline",updateReadouts)}
   </script>
 </body>
 </html>

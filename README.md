@@ -1,91 +1,26 @@
-# Napco VizBuilts 360 (YouTube Wrapper)
+# Napco VizBuilts 360
 
-A lightweight YouTube 360 viewing wrapper for use with VizBuilts QR codes.
+A GitHub Pages-compatible PWA for QR-linked YouTube 360 viewing.
 
-This viewer allows users to:
+This version uses YouTube as the video source, but provides custom controls underneath the viewing window so the user does not need to rely on YouTube's embedded drag/touch 360 controls.
 
-* Open a YouTube 360 video
-* Jump to a specific timestamp
-* Restore a saved viewing direction
-* View project spaces using QR codes
-
----
-
-# Example URL
+## QR URL Format
 
 ```text
-https://YOURNAME.github.io/REPO/?video=VIDEO_ID&t=18&yaw=90&pitch=-7&roll=0&fov=80
+https://vizbuilts.github.io/vr360/?video=VIDEO_ID&t=2.7&yaw=176&pitch=0&roll=0&fov=80
 ```
 
----
+## Files
 
-# Supported Parameters
+- `index.html`
+- `manifest.webmanifest`
+- `sw.js`
+- `icon-192.png`
+- `icon-512.png`
+- `favicon.png`
 
-| Parameter | Description                  |
-| --------- | ---------------------------- |
-| `video`   | YouTube video ID             |
-| `t`       | Time in seconds              |
-| `yaw`     | Horizontal viewing direction |
-| `pitch`   | Vertical viewing angle       |
-| `roll`    | Camera tilt                  |
-| `fov`     | Field of view                |
+## Notes
 
----
+The PWA shell can install on a user's device, but the YouTube version requires an internet connection to stream the video and use the YouTube IFrame API.
 
-# GitHub Pages Setup
-
-1. Upload:
-
-* `index.html`
-* `README.md`
-
-2. Go to:
-
-```text
-Repository → Settings → Pages
-```
-
-3. Set:
-
-* Source: `Deploy from a branch`
-* Branch: `main`
-* Folder: `/root`
-
-4. Save and wait several minutes for publishing.
-
----
-
-# QR Code Workflow
-
-QR codes can launch directly into:
-
-* a specific video
-* a specific timestamp
-* a specific viewing direction
-
-Example:
-
-```text
-https://YOURNAME.github.io/REPO/?video=zxZBpxrye3o&t=8.36&yaw=88.1&pitch=-7&roll=0&fov=80
-```
-
----
-
-# Notes
-
-This project uses YouTube's IFrame API and spherical video controls.
-
-Behavior may vary slightly depending on:
-
-* browser
-* mobile device
-* operating system
-* YouTube player updates
-
-Desktop Chrome generally provides the best experience.
-
----
-
-# Napco VizBuilts
-
-Developed for VizBuilts interactive viewing and QR-linked 360 navigation workflows.
+For fully offline and fully controlled mobile interaction, a future Three.js self-hosted equirectangular video viewer is recommended.
