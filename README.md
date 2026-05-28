@@ -28,6 +28,6 @@ For fully offline and fully controlled mobile interaction, a future Three.js sel
 
 ## V2 Notes
 
-- Adds a mobile/iPhone guidance overlay explaining Safari **aA → Request Desktop Website**.
+- Adds a mobile/iPhone guidance overlay explaining Safari **A → Request Desktop Website**.
 - Adds buttons to copy or reload the same QR/viewer link.
 - Inverts left/right yaw controls so the external controls feel more natural for the current YouTube viewpoint behavior.
