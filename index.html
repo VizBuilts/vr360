@@ -91,7 +91,7 @@
   <div id="toast" class="toast" role="status"></div>
   <script src="https://www.youtube.com/iframe_api"></script>
   <script>
-    let player=null,desired=null,current=null,applyTimer=null,telemetryTimer=null,deferredInstallPrompt=null,controlsHidden=true;
+    let player=null,desired=null,current=null,applyTimer=null,telemetryTimer=null,deferredInstallPrompt=null,controlsHidden=false;
     const $=id=>document.getElementById(id);
     const els={status:$("status"),toast:$("toast"),controlsShell:$("controlsShell"),installBtn:$("installBtn"),youtubeBtn:$("youtubeBtn"),helpBtn:$("helpBtn"),closeHelpBtn:$("closeHelpBtn"),help:$("help"),mobileNotice:$("mobileNotice"),copySameLinkBtn:$("copySameLinkBtn"),reloadSameLinkBtn:$("reloadSameLinkBtn"),dismissMobileNoticeBtn:$("dismissMobileNoticeBtn"),hideControlsBtn:$("hideControlsBtn"),yawLeftBtn:$("yawLeftBtn"),yawRightBtn:$("yawRightBtn"),pitchUpBtn:$("pitchUpBtn"),pitchDownBtn:$("pitchDownBtn"),rollLeftBtn:$("rollLeftBtn"),rollRightBtn:$("rollRightBtn"),zoomInBtn:$("zoomInBtn"),zoomOutBtn:$("zoomOutBtn"),fovResetBtn:$("fovResetBtn"),resetBtn:$("resetBtn"),reapplyBtn:$("reapplyBtn"),copyBtn:$("copyBtn"),stepSelect:$("stepSelect"),timeStepSelect:$("timeStepSelect"),stepReadout:$("stepReadout"),playPauseBtn:$("playPauseBtn"),backBtn:$("backBtn"),forwardBtn:$("forwardBtn"),fullscreenBtn:$("fullscreenBtn"),motionBtn:$("motionBtn"),timeVal:$("timeVal"),yawVal:$("yawVal"),pitchVal:$("pitchVal"),fovVal:$("fovVal"),connectionStatus:$("connectionStatus")};
     function onYouTubeIframeAPIReady(){boot()}
