@@ -24,3 +24,10 @@ https://vizbuilts.github.io/vr360/?video=VIDEO_ID&t=2.7&yaw=176&pitch=0&roll=0&f
 The PWA shell can install on a user's device, but the YouTube version requires an internet connection to stream the video and use the YouTube IFrame API.
 
 For fully offline and fully controlled mobile interaction, a future Three.js self-hosted equirectangular video viewer is recommended.
+
+
+## V2 Notes
+
+- Adds a mobile/iPhone guidance overlay explaining Safari **aA → Request Desktop Website**.
+- Adds buttons to copy or reload the same QR/viewer link.
+- Inverts left/right yaw controls so the external controls feel more natural for the current YouTube viewpoint behavior.
