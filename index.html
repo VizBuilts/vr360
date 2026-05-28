@@ -45,10 +45,10 @@
   <main id="app"><section id="viewer" aria-label="YouTube 360 viewer"><div id="player"></div></section></main>
   <div class="topbar">
     <div class="brand panel"><img src="icon-192.png" alt="Napco VizBuilts 360 icon"><div><div class="brand-title">Napco</div><div class="brand-subtitle">VizBuilts 360</div></div></div>
-    <div class="top-actions"><button id="installBtn" class="secondary hidden">Install</button><button id="youtubeBtn" class="secondary">YouTube</button><button id="helpBtn">Help</button><button id="hideControlsBtn" class="secondary">Hide Controls</button></div>
+    <div class="top-actions"><button id="installBtn" class="secondary hidden">Install</button><button id="youtubeBtn" class="secondary">YouTube</button><button id="helpBtn">Help</button><button id="hideControlsBtn" class="secondary">Show Controls</button></div>
   </div>
-  <div id="status" class="status panel">Loading Napco VizBuilts 360…</div>
-  <section id="controlsShell" class="controls-shell panel" aria-label="Custom YouTube 360 view controls">
+  <div id="status" class="status panel hidden">Loading Napco VizBuilts 360…</div>
+  <section id="controlsShell" class="controls-shell panel hidden" aria-label="Custom YouTube 360 view controls">
     <div class="control-card">
       <div class="card-title"><span>Look Direction</span><span id="stepReadout">Step 10°</span></div>
       <div class="pad"><span class="spacer"></span><button id="pitchUpBtn" class="big" aria-label="Look up">↑</button><span class="spacer"></span><button id="yawLeftBtn" class="big" aria-label="Look left">←</button><button id="resetBtn" class="secondary" aria-label="Reset to QR view">Reset</button><button id="yawRightBtn" class="big" aria-label="Look right">→</button><span class="spacer"></span><button id="pitchDownBtn" class="big" aria-label="Look down">↓</button><span class="spacer"></span></div>
@@ -91,7 +91,7 @@
   <div id="toast" class="toast" role="status"></div>
   <script src="https://www.youtube.com/iframe_api"></script>
   <script>
-    let player=null,desired=null,current=null,applyTimer=null,telemetryTimer=null,deferredInstallPrompt=null,controlsHidden=false;
+    let player=null,desired=null,current=null,applyTimer=null,telemetryTimer=null,deferredInstallPrompt=null,controlsHidden=true;
     const $=id=>document.getElementById(id);
     const els={status:$("status"),toast:$("toast"),controlsShell:$("controlsShell"),installBtn:$("installBtn"),youtubeBtn:$("youtubeBtn"),helpBtn:$("helpBtn"),closeHelpBtn:$("closeHelpBtn"),help:$("help"),mobileNotice:$("mobileNotice"),copySameLinkBtn:$("copySameLinkBtn"),reloadSameLinkBtn:$("reloadSameLinkBtn"),dismissMobileNoticeBtn:$("dismissMobileNoticeBtn"),hideControlsBtn:$("hideControlsBtn"),yawLeftBtn:$("yawLeftBtn"),yawRightBtn:$("yawRightBtn"),pitchUpBtn:$("pitchUpBtn"),pitchDownBtn:$("pitchDownBtn"),rollLeftBtn:$("rollLeftBtn"),rollRightBtn:$("rollRightBtn"),zoomInBtn:$("zoomInBtn"),zoomOutBtn:$("zoomOutBtn"),fovResetBtn:$("fovResetBtn"),resetBtn:$("resetBtn"),reapplyBtn:$("reapplyBtn"),copyBtn:$("copyBtn"),stepSelect:$("stepSelect"),timeStepSelect:$("timeStepSelect"),stepReadout:$("stepReadout"),playPauseBtn:$("playPauseBtn"),backBtn:$("backBtn"),forwardBtn:$("forwardBtn"),fullscreenBtn:$("fullscreenBtn"),motionBtn:$("motionBtn"),timeVal:$("timeVal"),yawVal:$("yawVal"),pitchVal:$("pitchVal"),fovVal:$("fovVal"),connectionStatus:$("connectionStatus")};
     function onYouTubeIframeAPIReady(){boot()}
