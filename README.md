@@ -1,4 +1,4 @@
-# Napco VizBuilts 360
+# Napco VizBuilts 360 (YouTube - Edition)
 
 A GitHub Pages-compatible PWA for QR-linked YouTube 360 viewing.
 
